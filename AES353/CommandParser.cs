@@ -1,8 +1,8 @@
 using System;
 using System.Drawing;
 using System.IO;
-using System.Linq;
 using System.Windows.Forms;
+using static System.Windows.Forms.LinkLabel;
 
 public class CommandParser
 {
@@ -13,59 +13,110 @@ public class CommandParser
     private PointF currentPosition;
     private bool fillEnabled = false;
 
+    public PointF CurrentPosition => currentPosition;
+    public Pen CurrentPen => currentPen;
+    public bool FillEnabled => fillEnabled;
+
     public CommandParser(TextBox codeTextBox, PictureBox displayArea)
     {
         this.codeTextBox = codeTextBox;
         this.displayArea = displayArea;
-        this.graphics = displayArea.CreateGraphics();
+
+        Bitmap bmp = new Bitmap(displayArea.Width, displayArea.Height);
+        displayArea.Image = bmp;
+        this.graphics = Graphics.FromImage(bmp);
         this.currentPen = new Pen(Color.Black);
         this.currentPosition = new PointF(0, 0);
     }
 
+    public void ExecuteProgram(string program)
+    {
+        var lines = codeTextBox.Text.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
+        foreach (var line in lines)
+        {
+            var parts = line.Trim().Split(' ');
+            switch (parts[0].ToLower())
+            {
+                case "moveto":
+                    MoveTo(float.Parse(parts[1]), float.Parse(parts[2]));
+                    break;
+                case "drawto":
+                    DrawTo(float.Parse(parts[1]), float.Parse(parts[2]));
+                    break;
+                case "clear":
+                    Clear();
+                    break;
+                case "rectangle":
+                    DrawRectangle(float.Parse(parts[1]), float.Parse(parts[2]));
+                    break;
+                case "circle":
+                    DrawCircle(float.Parse(parts[1]));
+                    break;
+                case "triangle":
+                    DrawTriangle(float.Parse(parts[1]), float.Parse(parts[2]), float.Parse(parts[3]), float.Parse(parts[4]), float.Parse(parts[5]), float.Parse(parts[6]));
+                    break;
+                case "color":
+                    SetColor(Color.FromName(parts[1]));
+                    break;
+                case "reset":
+                    ResetPenPosition();
+                    break;
+                case "fill":
+                    ToggleFill(parts[1]);
+                    break;
+                default:
+                    throw new ArgumentException("Unknown command");
+            }
+        }
+
+        displayArea.Invalidate();
+    }
+
+
+
     public void ExecuteCommand(string command)
     {
-        var parts = command.Split(' ');
-        switch (parts[0].ToLower())
+        string[] lines = command.Split(' ');
+        switch (lines[0].ToLower())
         {
             case "moveto":
-                MoveTo(float.Parse(parts[1]), float.Parse(parts[2]));
+                MoveTo(ParseFloat(lines[1]), ParseFloat(lines[2]));
                 break;
             case "drawto":
-                DrawTo(float.Parse(parts[1]), float.Parse(parts[2]));
+                DrawTo(ParseFloat(lines[1]), ParseFloat(lines[2]));
                 break;
             case "clear":
                 Clear();
                 break;
             case "rectangle":
-                DrawRectangle(float.Parse(parts[1]), float.Parse(parts[2]));
+                DrawRectangle(ParseFloat(lines[1]), ParseFloat(lines[2]));
                 break;
             case "circle":
-                DrawCircle(float.Parse(parts[1]));
+                DrawCircle(ParseFloat(lines[1]));
                 break;
             case "triangle":
-                DrawTriangle(float.Parse(parts[1]), float.Parse(parts[2]), float.Parse(parts[3]), float.Parse(parts[4]), float.Parse(parts[5]), float.Parse(parts[6]));
+                DrawTriangle(ParseFloat(lines[1]), ParseFloat(lines[2]), ParseFloat(lines[3]), ParseFloat(lines[4]), ParseFloat(lines[5]), ParseFloat(lines[6]));
                 break;
             case "color":
-                SetColor(Color.FromName(parts[1]));
+                SetColor(Color.FromName(lines[1]));
                 break;
             case "reset":
                 ResetPenPosition();
                 break;
             case "fill":
-                ToggleFill(parts[1]);
+                ToggleFill(lines[1]);
                 break;
             default:
-                throw new ArgumentException("Unknown command");
+                throw new ArgumentException($"Unknown command: {lines[0]}");
         }
+        displayArea.Invalidate();
     }
 
-    public void ExecuteProgram()
+    private float ParseFloat(string input)
     {
-        var commands = codeTextBox.Text.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
-        foreach (var command in commands)
-        {
-            ExecuteCommand(command.Trim());
-        }
+        if (float.TryParse(input, out float result))
+            return result;
+        throw new ArgumentException($"Unable to parse '{input}' as a float.");
     }
 
     public void SaveProgram(string filePath)
@@ -83,40 +134,46 @@ public class CommandParser
         var commands = codeTextBox.Text.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
         foreach (var command in commands)
         {
-            if (!IsValidCommand(command))
+            if (!IsValidCommand(command.Trim()))
             {
                 MessageBox.Show($"Syntax error in command: {command}", "Syntax Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
         }
-        MessageBox.Show("Syntax is correct!", "Syntax Check", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        MessageBox.Show("All commands have valid syntax.", "Syntax Check", MessageBoxButtons.OK, MessageBoxIcon.Information);
     }
-
     private bool IsValidCommand(string command)
     {
-        var parts = command.Split(' ');
-        var commandType = parts[0].ToLower();
+        var lines = command.Split(' ');
+        var commandType = lines[0].ToLower();
 
-        switch (commandType)
+        try
         {
-            case "moveto":
-            case "drawto":
-                return parts.Length == 3 && parts.Skip(1).All(p => float.TryParse(p, out _));
-            case "rectangle":
-                return parts.Length == 5 && parts.Skip(1).All(p => float.TryParse(p, out _));
-            case "circle":
-                return parts.Length == 2 && float.TryParse(parts[1], out _);
-            case "triangle":
-                return parts.Length == 7 && parts.Skip(1).All(p => float.TryParse(p, out _));
-            case "color":
-                return parts.Length == 2 && Enum.IsDefined(typeof(KnownColor), parts[1]);
-            case "clear":
-            case "reset":
-                return parts.Length == 1;
-            case "fill":
-                return parts.Length == 2 && (parts[1].ToLower() == "on" || parts[1].ToLower() == "off");
-            default:
-                return false;
+            switch (commandType)
+            {
+                case "moveto":
+                case "drawto":
+                    return lines.Length == 3 && lines.Skip(1).All(p => float.TryParse(p, out _));
+                case "rectangle":
+                    return lines.Length == 5 && lines.Skip(1).All(p => float.TryParse(p, out _));
+                case "circle":
+                    return lines.Length == 2 && float.TryParse(lines[1], out _);
+                case "triangle":
+                    return lines.Length == 7 && lines.Skip(1).All(p => float.TryParse(p, out _));
+                case "color":
+                    return lines.Length == 2 && Enum.IsDefined(typeof(KnownColor), lines[1]);
+                case "clear":
+                case "reset":
+                    return lines.Length == 1;
+                case "fill":
+                    return lines.Length == 2 && (lines[1].ToLower() == "on" || lines[1].ToLower() == "off");
+                default:
+                    return false;
+            }
+        }
+        catch
+        {
+            return false;
         }
     }
 
@@ -134,7 +191,7 @@ public class CommandParser
 
     private void Clear()
     {
-        graphics.Clear(displayArea.BackColor);
+        graphics.Clear(Color.White);
         currentPosition = new PointF(0, 0);
     }
 
@@ -181,14 +238,10 @@ public class CommandParser
     public void SetupGraphics(PaintEventArgs e)
     {
         var g = e.Graphics;
-
         g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
         g.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;
         g.CompositingQuality = System.Drawing.Drawing2D.CompositingQuality.HighQuality;
-
-
     }
-
 
     public void Cleanup()
     {
@@ -197,5 +250,5 @@ public class CommandParser
         if (currentPen != null)
             currentPen.Dispose();
     }
-}
 
+}
