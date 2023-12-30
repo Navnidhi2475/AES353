@@ -6,12 +6,12 @@ namespace AES353
 {
     public partial class Form1 : Form
     {
-        private CommandParser processor;
+        private CommandParser parser;
 
         public Form1()
         {
             InitializeComponent();
-            processor = new CommandParser(codeTextBox, displayArea);
+            parser = new CommandParser(codeTextBox, displayArea);
             displayArea.Paint += new PaintEventHandler(displayArea_Paint);
             commandTextBox.KeyUp += new KeyEventHandler(commandTextBox_KeyUp);
             runButton.Click += new EventHandler(click_Run);
@@ -21,14 +21,15 @@ namespace AES353
 
         private void Form1_Load(object sender, EventArgs e)
         {
-            // This method is called when the form loads.
+            // Initialization that occurs when the form loads can be placed here.
         }
 
         private void click_Run(object sender, EventArgs e)
         {
             try
             {
-                processor.ExecuteProgram();
+                string program = codeTextBox.Text;
+                parser.ExecuteProgram(program);
             }
             catch (Exception ex)
             {
@@ -40,7 +41,7 @@ namespace AES353
         {
             try
             {
-                processor.CheckSyntax();
+                parser.CheckSyntax();
             }
             catch (Exception ex)
             {
@@ -48,31 +49,65 @@ namespace AES353
             }
         }
 
+        private void SaveButton_Click(object sender, EventArgs e)
+        {
+            using (SaveFileDialog saveFileDialog = new SaveFileDialog())
+            {
+                saveFileDialog.Filter = "Text Files (*.txt)|*.txt";
+                saveFileDialog.DefaultExt = "txt";
+                saveFileDialog.AddExtension = true;
+
+                if (saveFileDialog.ShowDialog() == DialogResult.OK)
+                {
+                    parser.SaveProgram(saveFileDialog.FileName);
+                }
+            }
+        }
+
+        private void LoadButton_Click(object sender, EventArgs e)
+        {
+            using (OpenFileDialog openFileDialog = new OpenFileDialog())
+            {
+                openFileDialog.Filter = "Text Files (*.txt)|*.txt";
+                openFileDialog.DefaultExt = "txt";
+                openFileDialog.AddExtension = true;
+
+                if (openFileDialog.ShowDialog() == DialogResult.OK)
+                {
+                    parser.LoadProgram(openFileDialog.FileName);
+                }
+            }
+        }
+
+
         private void commandTextBox_KeyUp(object sender, KeyEventArgs e)
         {
             if (e.KeyCode == Keys.Enter)
             {
-                var commandText = commandTextBox.Text;
+                var commandText = ((TextBox)sender).Text;
                 try
                 {
-                    processor.ExecuteCommand(commandText);
-                    commandTextBox.Clear();
+                    parser.ExecuteCommand(commandText);
                 }
                 catch (Exception ex)
                 {
                     MessageBox.Show("Error executing command: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+                finally
+                {
+                    ((TextBox)sender).Clear();
                 }
             }
         }
 
         private void displayArea_Paint(object sender, PaintEventArgs e)
         {
-            processor.SetupGraphics(e);
+            parser.SetupGraphics(e);
         }
 
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
         {
-            processor.Cleanup();
+            parser.Cleanup();
         }
     }
 }
