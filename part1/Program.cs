@@ -1,4 +1,4 @@
-namespace AES353
+namespace part1
 {
     internal static class Program
     {

@@ -2,7 +2,7 @@ using System;
 using System.Drawing;
 using System.Windows.Forms;
 
-namespace AES353
+namespace part1
 {
     public partial class Form1 : Form
     {
