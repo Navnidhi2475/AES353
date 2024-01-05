@@ -1,4 +1,4 @@
-﻿using NUnit.Framework;
+using NUnit.Framework;
 using System.Drawing;
 using System.Windows.Forms;
 
@@ -109,15 +109,15 @@ public class CommandParserTests
         commandParser.ExecuteProgram(command);
 
         Bitmap bmp = (Bitmap)displayArea.Image;
-        Color expectedColor = Color.Black;
+        Color expectedColor = Color.Black; 
         bool isCircleDrawn = true;
 
         // Checking points on the circumference of the circle
         for (int angle = 0; angle < 360; angle++)
         {
             double radian = angle * Math.PI / 180;
-            int x = (int)(radius * Math.Cos(radian)) + (int)radius;
-            int y = (int)(radius * Math.Sin(radian)) + (int)radius;
+            int x = (int)(radius * Math.Cos(radian)) + (int)radius; 
+            int y = (int)(radius * Math.Sin(radian)) + (int)radius; 
 
             if (x < 0 || y < 0 || x >= bmp.Width || y >= bmp.Height || bmp.GetPixel(x, y) != expectedColor)
             {
@@ -130,6 +130,95 @@ public class CommandParserTests
     }
 
     [Test]
+    public void TestInvalidCommandException()
+    {
+        string command = "invalidCommand 10 20";
+        codeTextBox.Text = command;
+
+        Assert.Throws<ArgumentException>(() => commandParser.ExecuteProgram(command), "Invalid command did not throw an exception.");
+    }
+
+     [Test]
+    public void TestPenPositionAfterDrawing()
+    {
+        string command = "moveto 10 10\ndrawto 20 20";
+        codeTextBox.Text = command;
+        commandParser.ExecuteProgram(command);
+        PointF expectedPosition = new PointF(20, 20);
+
+        Assert.AreEqual(expectedPosition, commandParser.CurrentPosition, "Pen position not updated correctly after drawing.");
+    }
+
+    [Test]
+public void TestRectangleFill()
+{
+    string command = "fill on\nrectangle 50 30";
+    codeTextBox.Text = command;
+    commandParser.ExecuteProgram(command);
+
+    Bitmap bmp = (Bitmap)displayArea.Image;
+    Color expectedColor = Color.Black; // Assuming default pen color is black and fill is on
+    bool isFilled = true;
+
+    // Check if the rectangle area is filled
+    for (int x = 0; x < 50; x++)
+    {
+        for (int y = 0; y < 30; y++)
+        {
+            if (bmp.GetPixel(x, y) != expectedColor)
+            {
+                isFilled = false;
+                break;
+            }
+        }
+        if (!isFilled) break;
+    }
+
+    Assert.IsTrue(isFilled, "Rectangle fill did not work as expected.");
+}
+
+[Test]
+public void TestCircleFill()
+{
+    float radius = 20;
+    string command = $"fill on\ncircle {radius}";
+    codeTextBox.Text = command;
+    commandParser.ExecuteProgram(command);
+
+    Bitmap bmp = (Bitmap)displayArea.Image;
+    Color expectedColor = Color.Black;
+    bool isFilled = true;
+
+    // Check if the circle area is filled
+    for (int x = 0; x < radius * 2; x++)
+    {
+        for (int y = 0; y < radius * 2; y++)
+        {
+            if (bmp.GetPixel(x, y) != expectedColor)
+            {
+                isFilled = false;
+                break;
+            }
+        }
+        if (!isFilled) break;
+    }
+
+    Assert.IsTrue(isFilled, "Circle fill did not work as expected.");
+}
+
+
+    [Test]
+    public void TestPenPositionAfterDrawing()
+    {
+        string command = "moveto 10 10\ndrawto 20 20";
+        codeTextBox.Text = command;
+        commandParser.ExecuteProgram(command);
+        PointF expectedPosition = new PointF(20, 20);
+
+        Assert.AreEqual(expectedPosition, commandParser.CurrentPosition, "Pen position not updated correctly after drawing.");
+    }
+
+    [Test]
     public void TestTriangleCommand()
     {
         string command = "triangle 10 10 50 10 30 40"; // Vertices of the triangle
@@ -137,7 +226,7 @@ public class CommandParserTests
         commandParser.ExecuteProgram(command);
 
         Bitmap bmp = (Bitmap)displayArea.Image;
-        Color expectedColor = Color.Black;
+        Color expectedColor = Color.Black; 
         bool isTriangleDrawn = true;
 
         // Check if lines are drawn between the vertices
@@ -180,7 +269,7 @@ public class CommandParserTests
         commandParser.ExecuteProgram(command);
 
         Color expectedColor = Color.Red;
-        Color actualColor = commandParser.CurrentPen.Color;
+        Color actualColor = commandParser.CurrentPen.Color; 
 
         Assert.AreEqual(expectedColor, actualColor, "Pen color was not set correctly.");
     }
@@ -192,7 +281,7 @@ public class CommandParserTests
         codeTextBox.Text = command;
         commandParser.ExecuteProgram(command);
 
-        bool expectedFillState = true;
+        bool expectedFillState = true; 
         bool actualFillState = commandParser.FillEnabled;
 
         Assert.AreEqual(expectedFillState, actualFillState, "Fill state was not toggled correctly.");
