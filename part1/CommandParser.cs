@@ -136,7 +136,7 @@ public class CommandParser
         {
             if (!IsValidCommand(command.Trim()))
             {
-                MessageBox.Show($"Syntax error in command: {command}", "Syntax Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show($"Syntax error in command", "Syntax Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
         }
