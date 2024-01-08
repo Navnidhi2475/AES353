@@ -2,7 +2,7 @@ using System;
 using System.Drawing;
 using System.Windows.Forms;
 
-namespace part1
+namespace AES353
 {
     public partial class Form1 : Form
     {
@@ -82,23 +82,38 @@ namespace part1
 
         private void commandTextBox_KeyUp(object sender, KeyEventArgs e)
         {
-            if (e.KeyCode == Keys.Enter)
+            if (e.KeyCode == Keys.Enter && !e.Handled)
             {
-                var commandText = ((TextBox)sender).Text;
-                try
+                e.Handled = true; // Mark the event as handled to prevent it from being processed again
+                string commandText = commandTextBox.Text.Trim();
+
+                if (string.IsNullOrEmpty(commandText))
                 {
-                    parser.ExecuteCommand(commandText);
+                    MessageBox.Show("Please enter a command.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
-                catch (Exception ex)
+                else
                 {
-                    MessageBox.Show("Error executing command: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    try
+                    {
+                        parser.ExecuteCommand(commandText);
+                        displayArea.Invalidate(); // Refresh the canvas after executing the command
+                        MessageBox.Show("Command executed successfully.", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show("Error: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
+                    finally
+                    {
+                        commandTextBox.Clear(); // Clear the commandTextBox after processing the command
+                    }
                 }
-                finally
-                {
-                    ((TextBox)sender).Clear();
-                }
+                commandTextBox.Focus(); // Set focus back to the commandTextBox for new input
             }
         }
+
+
+
 
         private void displayArea_Paint(object sender, PaintEventArgs e)
         {
